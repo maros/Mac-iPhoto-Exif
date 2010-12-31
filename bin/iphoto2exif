@@ -1,0 +1,5 @@
+#!/perl
+use Mac::iPhoto::Exif;
+
+my $cmd = Mac::iPhoto::Exif->new_with_options;
+$cmd->run;
