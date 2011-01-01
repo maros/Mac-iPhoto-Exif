@@ -53,7 +53,7 @@ has 'backup'  => (
     default             => 0,
 );
 
-sub message {
+sub log {
     my ($self,@message) = @_;
     
     my $level_name = shift(@message)
@@ -97,7 +97,7 @@ sub run {
     local $SIG{__WARN__} = sub {
         my ($message) = shift;
         chomp $message;
-        $self_copy->message('warn',$message);
+        $self_copy->log('warn',$message);
     };
     
     binmode STDOUT, ":utf8";
@@ -106,11 +106,11 @@ sub run {
         no_blanks   => 1,
     );
     my $doc = eval {
-        $self->message('info','Reading iPhoto album %s',$self->iphoto_album);
+        $self->log('info','Reading iPhoto album %s',$self->iphoto_album);
         return $parser->parse_file($self->iphoto_album);
     };
     if (! $doc) {
-        $self->message('error','Could not parse iPhoto album: %s',$@ // 'unknown error');
+        $self->log('error','Could not parse iPhoto album: %s',$@ // 'unknown error');
         exit();
     }
     
@@ -125,12 +125,12 @@ sub run {
                 foreach my $person (values %$persons_hash) {
                     $persons->{$person->{key}} = $person->{name};
                 }
-                $self->message('info','Fetching faces (%i)',scalar(keys %$persons));
+                $self->log('info','Fetching faces (%i)',scalar(keys %$persons));
             }
             when ('List of Keywords') {
                 my $keywordlist_node = $top_node->nextNonBlankSibling();
                 $keywords = _plist_node_to_hash($keywordlist_node);
-                $self->message('info','Fetching keywords (%i)',scalar(keys %$keywords));
+                $self->log('info','Fetching keywords (%i)',scalar(keys %$keywords));
             }
             when ('Master Image List') {
                 my $imagelist_node = $top_node->nextNonBlankSibling();
@@ -151,7 +151,7 @@ sub run {
                             my $comment = $image->{Comment};
                             my $faces = $image->{Faces};
                             
-                            $self->message('info','Processing %s',$image_path->stringify);
+                            $self->log('info','Processing %s',$image_path->stringify);
                             my $exif = new Image::ExifTool(
                                 Charset => 'UTF8',
                                 #DateFormat=>undef
@@ -185,13 +185,13 @@ sub run {
                                     time_zone   => 'floating',
                                 );
                             } else {
-                                $self->message('error','Could not parse date format %s',$exif->GetValue('DateTimeOriginal'));
+                                $self->log('error','Could not parse date format %s',$exif->GetValue('DateTimeOriginal'));
                                 next;
                             }
                             
                             my %keywords = map { $keywords->{$_} => 1 } @{$image->{Keywords}};
                             
-                            my $changed_exif;
+                            my $changed_exif = 0;
                             
                             # Faces
                             if (defined $faces && scalar @{$faces}) {
@@ -204,7 +204,7 @@ sub run {
                                         unless defined $person;
                                     next
                                         if $person ~~ \@persons_list;
-                                    $self->message('debug','- Add person %s',$person);
+                                    $self->log('debug','- Add person %s',$person);
                                     push(@persons_list,$person);
                                     $persons_changed = 1;
                                 }
@@ -222,7 +222,7 @@ sub run {
                                 foreach my $keyword (keys %keywords) {
                                     next
                                         if $keyword ~~ \@keywords_list;
-                                    $self->message('debug','- Add keyword %s',$keyword);
+                                    $self->log('debug','- Add keyword %s',$keyword);
                                     push(@keywords_list,$keyword);
                                     $keywords_changed = 1;
                                 }
@@ -236,7 +236,7 @@ sub run {
                             if ($comment) {
                                 my $old_comment = $exif->GetValue('UserComment');
                                 if ($old_comment ne $comment) {
-                                    $self->message('debug','- Set user comment');
+                                    $self->log('debug','- Set user comment');
                                     $exif->SetNewValue('UserComment',$comment);
                                     $changed_exif = 1;
                                 }
@@ -246,7 +246,7 @@ sub run {
                             if ($rating && $rating > 0) {
                                 my $old_rating = $exif->GetValue('Rating') // 0;
                                 if ($old_rating != $rating) {
-                                    $self->message('debug','- Set rating %i',$rating);
+                                    $self->log('debug','- Set rating %i',$rating);
                                     $exif->SetNewValue('Rating',$rating);
                                     $changed_exif = 1;
                                 }
@@ -259,7 +259,7 @@ sub run {
                                 $old_longitude //= 0;
                                 if (sprintf('%.4f',$latitude) != sprintf('%.4f',$old_latitude) 
                                     && sprintf('%.4f',$longitude) != sprintf('%.4f',$old_longitude)) {
-                                    $self->message('debug','- Set geo location %fN,%fS',$latitude,$longitude);
+                                    $self->log('debug','- Set geo location %fN,%fS',$latitude,$longitude);
                                     $exif->SetLocation($latitude,$longitude);
                                     $changed_exif = 1;
                                 }
@@ -268,21 +268,21 @@ sub run {
                             if ($changed_exif) {
                                 if ($self->backup) {
                                     my $backup_path = Path::Class::File->new($image_path->dir,'_'.$image_path->basename);
-                                    $self->message('debug','- Writing backup file to %s',$backup_path->stringify);
+                                    $self->log('debug','- Writing backup file to %s',$backup_path->stringify);
                                     File::Copy::syscopy($image_path->stringify,$backup_path->stringify)
-                                        or $self->message('error','Could not copy %s to %s: %s',$image_path->stringify,$backup_path->stringify,$!);
+                                        or $self->log('error','Could not copy %s to %s: %s',$image_path->stringify,$backup_path->stringify,$!);
                                 }
                                 my $success = $exif->WriteInfo($image_path);
                                 if ($success) {
-                                    $self->message('debug','- Exif data has been written to %s',$image_path->stringify);
+                                    $self->log('debug','- Exif data has been written to %s',$image_path->stringify);
                                 } else {
-                                    $self->message('error','Could not write to %s: %s',$image_path->stringify,$exif->GetValue('Error'));
+                                    $self->log('error','Could not write to %s: %s',$image_path->stringify,$exif->GetValue('Error'));
                                 }
                             }
                             if ($self->changetime) {
-                                $self->message('debug','- Change file time to %s',$date->datetime);
+                                $self->log('debug','- Change file time to %s',$date->datetime);
                                 utime($date->epoch, $date->epoch, $image_path->stringify)
-                                    or $self->message('error','Could not utime %s: %s',$image_path->stringify,$!);
+                                    or $self->log('error','Could not utime %s: %s',$image_path->stringify,$!);
                             }
                             
                             $count ++;
