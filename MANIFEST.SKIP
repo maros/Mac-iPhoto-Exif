@@ -1,5 +1,12 @@
 # Avoid version control files.
+\bRCS\b
+\bCVS\b
+,v$
+\B\.svn\b
+\B\.cvsignore$
 \B.git$
+\B.swp$
+\B.git\b
 \B.gitignore$
 
 # Avoid Makemaker generated and utility files.
@@ -20,7 +27,6 @@
 
 # Avoid temp and backup files.
 ~$
-\B.swp$
 \.tmp$
 \.old$
 \.bak$
@@ -28,7 +34,6 @@
 \.#
 \.rej$
 
-# Avoid eclipse files/dirs
 \B\.includepath
 \B\.project
 \B\.settings
