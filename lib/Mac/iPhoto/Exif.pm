@@ -8,8 +8,9 @@ use utf8;
 use Moose;
 with qw(MooseX::Getopt);
 
+use Moose::Util::TypeConstraints;
+use Path::Class;
 use Scalar::Util qw(weaken);
-use MooseX::Types::Path::Class;
 use XML::LibXML;
 use Term::ANSIColor;
 use File::Copy;
@@ -25,6 +26,42 @@ our @LEVELS = qw(debug info warn error);
 our $TIMERINTERVAL_EPOCH = 978307200; # Epoch of TimeInterval zero point: 2001.01.01
 our $IPHOTO_ALBUM = $ENV{HOME}.'/Pictures/iPhoto Library/AlbumData.xml';
 
+subtype 'Path::Class::Dirs' 
+    => as 'ArrayRef[Path::Class::Dir]';
+subtype 'Path::Class::File'
+    => as 'Path::Class::File';
+
+coerce 'Path::Class::File'
+    => from 'Str'
+    => via { Path::Class::File->new($_) };
+
+coerce 'Path::Class::Dirs'
+    => from 'Str'
+    => via { [ Path::Class::Dir->new($_) ] }
+    => from 'ArrayRef[Str]'
+    => via { [ map { Path::Class::Dir->new($_) } @$_ ] };
+    
+MooseX::Getopt::OptionTypeMap->add_option_type_to_map( 
+    'Path::Class::Dirs'             => '=s@',
+    'Path::Class::File'             => '=s',
+);
+
+has 'directory'  => (
+    is                  => 'ro',
+    isa                 => 'Path::Class::Dirs',
+    coerce              => 1,
+    predicate           => 'has_directory',
+    documentation       => "Limit operation to given directories [Multiple; Default: All]",
+);
+
+has 'exclude'  => (
+    is                  => 'ro',
+    isa                 => 'Path::Class::Dirs',
+    coerce              => 1,
+    predicate           => 'has_exclude',
+    documentation       => "Exclude given directories  [Multiple; Default: None]",
+);
+
 has 'iphoto_album'  => (
     is                  => 'ro',
     isa                 => 'Path::Class::File',
@@ -35,8 +72,9 @@ has 'iphoto_album'  => (
 
 has 'loglevel' => (
     is                  => 'ro',
-    isa                 => Moose::Util::TypeConstraints::enum(\@LEVELS),
+    isa                 => enum(\@LEVELS),
     default             => 'info',
+    documentation       => 'Log level [Values: '.join(',',@LEVELS).'; Default: info]',
 );
 
 has 'changetime'  => (
@@ -145,6 +183,34 @@ sub run {
                             my $image = _plist_node_to_value($image_node);
                             
                             my $image_path = Path::Class::File->new($image->{OriginalPath} || $image->{ImagePath});
+                            my $image_directory = $image_path->dir;
+                            
+                            # Process directories
+                            if ($self->has_directory) {
+                                my $contains = 0;
+                                foreach my $directory (@{$self->directory}) {
+                                    if ($directory->contains($image_directory)) {
+                                        $contains = 1;
+                                        last;
+                                    }
+                                }
+                                next
+                                    unless $contains;
+                            }
+                            
+                            # Process excludes
+                            if ($self->has_exclude) {
+                                my $contains = 0;
+                                foreach my $directory (@{$self->exclude}) {
+                                    if ($directory->contains($image_directory)) {
+                                        $contains = 1;
+                                        last;
+                                    }
+                                }
+                                next
+                                    if $contains;
+                            }
+                            
                             my $latitude = $image->{latitude};
                             my $longitude = $image->{longitude};
                             my $rating = $image->{Rating};
