@@ -346,4 +346,116 @@ sub _plist_node_to_array {
     return $return;
 }
 
+__PACKAGE__->meta->make_immutable;
+no Moose;
 1;
+
+=encoding utf8
+
+=head1 NAME 
+
+Mac::iPhoto::Exif - Write iPhoto meta data to Exif
+
+=head1 SYNOPSIS
+
+ console$ iphoto2exif --directory /data/photo/2010/summer_vacation
+
+or
+
+ use Mac::iPhoto::Exif;
+ my $iphotoexif = Mac::iPhoto::Exif->new(
+    directory   => '/data/photo/2010/summer_vacation'
+ );
+ $iphotoexif->run;
+
+=head1 DESCRIPTION
+
+This module write meta data from the iPhoto database like keywords, 
+geo locations, comments, ratings and faces to the pictures Exif data.
+
+The following exif tags are being used:
+
+=over
+
+=item * PersonInImage
+
+=item * Keywords
+
+=item * UserComment
+
+=item * Rating
+
+=item * GPSLatitude, GPSLongitude, GPSLatitudeRef, GPSLongitudeRef
+
+=item * Rating
+
+=back
+
+=head1 ACCESSORS
+
+=head2 directory
+
+Limit operation to one or more directories. 
+
+ArrayRef of Path::Class::Dir
+
+=head2 exclude
+
+Exclude one or more directories.
+
+ArrayRef of Path::Class::Dir
+
+=head2 iphoto_album
+
+Path to the iPhoto AlbumData.xml database.
+
+Path::Class::File
+
+=head2 loglevel
+
+Be more/less verbose. 
+
+Accepted loglevels are : debug, info, warn and error
+
+Default: info
+
+=head2 changetime
+
+Change file time according to exif timestamps
+
+Default: true
+
+=head2 backup
+
+Backup changed filed
+
+Default: false
+
+=head1 SUPPORT
+
+Please report any bugs or feature requests to 
+C<mac-iphoto-exif@rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org/Public/Bug/Report.html?Queue=Mac::iPhoto::Exif>.
+I will be notified and then you'll automatically be notified of the progress 
+on your report as I make changes.
+
+=head1 AUTHOR
+
+    Maroš Kollár
+    CPAN ID: MAROS
+    maros [at] k-1.com
+    
+    L<http://www.k-1.com>
+
+=head1 COPYRIGHT & LICENSE
+
+App::iTan is Copyright (c) 2009, Maroš Kollár 
+- L<http://www.k-1.com>
+
+This program is free software; you can redistribute it and/or modify it under 
+the same terms as Perl itself.
+
+The full text of the license can be found in the
+LICENSE file included with this module.
+
+=cut
