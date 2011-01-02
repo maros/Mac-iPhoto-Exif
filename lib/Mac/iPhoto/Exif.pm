@@ -6,13 +6,10 @@ use 5.010;
 use utf8;
 
 use Moose;
-with qw(MooseX::Getopt);
 
 use Moose::Util::TypeConstraints;
 use Path::Class;
-use Scalar::Util qw(weaken);
 use XML::LibXML;
-use Term::ANSIColor;
 use File::Copy;
 use DateTime;
 
@@ -20,14 +17,14 @@ use Image::ExifTool;
 use Image::ExifTool::Location;
 
 our $VERSION = version->new("1.00");
-
-our $DATE_SEPARATOR = '[.:\/]';
 our @LEVELS = qw(debug info warn error);
+our $DATE_SEPARATOR = '[.:\/]';
 our $TIMERINTERVAL_EPOCH = 978307200; # Epoch of TimeInterval zero point: 2001.01.01
 our $IPHOTO_ALBUM = $ENV{HOME}.'/Pictures/iPhoto Library/AlbumData.xml';
 
 subtype 'Path::Class::Dirs' 
     => as 'ArrayRef[Path::Class::Dir]';
+
 subtype 'Path::Class::File'
     => as 'Path::Class::File';
 
@@ -40,11 +37,6 @@ coerce 'Path::Class::Dirs'
     => via { [ Path::Class::Dir->new($_) ] }
     => from 'ArrayRef[Str]'
     => via { [ map { Path::Class::Dir->new($_) } @$_ ] };
-    
-MooseX::Getopt::OptionTypeMap->add_option_type_to_map( 
-    'Path::Class::Dirs'             => '=s@',
-    'Path::Class::File'             => '=s',
-);
 
 has 'directory'  => (
     is                  => 'ro',
@@ -70,13 +62,6 @@ has 'iphoto_album'  => (
     documentation       => "Path to iPhoto library [Default: $IPHOTO_ALBUM]",
 );
 
-has 'loglevel' => (
-    is                  => 'ro',
-    isa                 => enum(\@LEVELS),
-    default             => 'info',
-    documentation       => 'Log level [Values: '.join(',',@LEVELS).'; Default: info]',
-);
-
 has 'changetime'  => (
     is                  => 'ro',
     isa                 => 'Bool',
@@ -92,53 +77,14 @@ has 'backup'  => (
 );
 
 sub log {
-    my ($self,@message) = @_;
-    
-    my $level_name = shift(@message)
-        if $message[0] ~~ \@LEVELS;
-    
-    my $format = shift(@message) // '';
-    my $logmessage = sprintf( $format, map { $_ // '000000' } @message );
-    
-    my ($level_pos) = grep { $LEVELS[$_] eq $level_name } 0 .. $#LEVELS;
-    my ($level_max) = grep { $LEVELS[$_] eq $self->loglevel } 0 .. $#LEVELS;
-    
-    if ($level_pos >= $level_max) {
-        given ($level_name) {
-            when ('error') {
-                print color 'bold red';
-                printf "%5s: ",$level_name;
-            }
-            when ('warn') {
-                print color 'bold bright_yellow';
-                printf "%5s: ",$level_name;
-            }
-            when ('info') {
-                print color 'bold cyan';
-                printf "%5s: ",$level_name;
-            }
-            when ('debug') {
-                print color 'bold white';
-                printf "%5s: ",$level_name;
-            }
-        }
-        print color 'reset';
-        say $logmessage;
-    }
+    my ($self,$loglevel,$format,@params) = @_;
+    say sprintf($format,@params);
+    # DO not log anything
 }
 
-sub run {
+sub parse_album {
     my ($self) = @_;
     
-    my $self_copy = $self;
-    weaken($self_copy);
-    local $SIG{__WARN__} = sub {
-        my ($message) = shift;
-        chomp $message;
-        $self_copy->log('warn',$message);
-    };
-    
-    binmode STDOUT, ":utf8";
     my $parser = XML::LibXML->new(
         encoding    => 'utf-8',
         no_blanks   => 1,
@@ -149,8 +95,16 @@ sub run {
     };
     if (! $doc) {
         $self->log('error','Could not parse iPhoto album: %s',$@ // 'unknown error');
-        exit();
+        die('Cannot continue');
     }
+    return $doc;
+}
+
+
+sub run {
+    my ($self) = @_;
+    
+    my $doc = $self->parse_album;
     
     my $persons = {};
     my $keywords = {};
