@@ -497,6 +497,23 @@ Backup changed filed
 
 Default: false
 
+=head1 DISCLAIMER
+
+This module has been extensively tested on my machine (OSX 10.6.6,
+iPhoto 9.1.1) and deemed to work correctly. However I do not guarantee that
+it will work correctly on any other machine/setup. So make sure that you have
+backups of your valualble pictures before running this program!
+
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. PERFORMANCE OF THE
+SOFTWARE IS WITH YOU.
+
+IN NO EVENT WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY
+AND/OR REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE SOFTWARE.
+
 =head1 SUPPORT
 
 Please report any bugs or feature requests to 
@@ -515,7 +532,7 @@ on your report as I make changes.
 
 =head1 COPYRIGHT & LICENSE
 
-App::iTan is Copyright (c) 2009, Maroš Kollár 
+Mac::iPhoto::Exif is Copyright (c) 2009, Maroš Kollár 
 - L<http://www.k-1.com>
 
 This program is free software; you can redistribute it and/or modify it under 
