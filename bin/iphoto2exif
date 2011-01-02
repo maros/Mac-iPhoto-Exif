@@ -1,7 +1,7 @@
 #!/perl
-use Mac::iPhoto::Exif;
+use Mac::iPhoto::Exif::Commandline;
 
-my $cmd = Mac::iPhoto::Exif->new_with_options;
+my $cmd = Mac::iPhoto::Exif::Commandline->new_with_options;
 $cmd->run;
 
 =head1 NAME
