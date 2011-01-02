@@ -301,7 +301,8 @@ sub run {
                             # User comments
                             if ($comment) {
                                 my $old_comment = $exif->GetValue('UserComment');
-                                if ($old_comment ne $comment) {
+                                if (! defined $old_comment 
+                                    || $old_comment ne $comment) {
                                     $self->log('debug','- Set user comment');
                                     $exif->SetNewValue('UserComment',$comment);
                                     $changed_exif = 1;
@@ -338,7 +339,7 @@ sub run {
                                     File::Copy::syscopy($image_path->stringify,$backup_path->stringify)
                                         or $self->log('error','Could not copy %s to %s: %s',$image_path->stringify,$backup_path->stringify,$!);
                                 }
-                                my $success = $exif->WriteInfo($image_path);
+                                my $success = $exif->WriteInfo($image_path->stringify);
                                 if ($success) {
                                     $self->log('debug','- Exif data has been written to %s',$image_path->stringify);
                                 } else {
