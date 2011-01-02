@@ -78,7 +78,6 @@ has 'backup'  => (
 
 sub log {
     my ($self,$loglevel,$format,@params) = @_;
-    say sprintf($format,@params);
     # DO not log anything
 }
 
@@ -176,11 +175,9 @@ sub run {
                                 Charset => 'UTF8',
                                 #DateFormat=>undef
                             );
-                            $exif->Options(DateFormat => undef);
+                            #$exif->Options(DateFormat => undef);
                             
                             $exif->ExtractInfo($image_path->stringify);
-                            
-                            my $info = $exif->ImageInfo($image_path->stringify);
                             
                             my $date;
                             
@@ -266,7 +263,8 @@ sub run {
                             # User ratings
                             if ($rating && $rating > 0) {
                                 my $old_rating = $exif->GetValue('Rating') // 0;
-                                if ($old_rating != $rating) {
+                                if (! defined $old_rating 
+                                    || $old_rating != $rating) {
                                     $self->log('debug','- Set rating %i',$rating);
                                     $exif->SetNewValue('Rating',$rating);
                                     $changed_exif = 1;
