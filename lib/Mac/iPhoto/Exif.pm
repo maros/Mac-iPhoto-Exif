@@ -91,6 +91,7 @@ sub parse_album {
         encoding    => 'utf-8',
         no_blanks   => 1,
     );
+    
     my $doc = eval {
         $self->log('info','Reading iPhoto album %s',$self->iphoto_album);
         return $parser->parse_file($self->iphoto_album);
@@ -202,7 +203,7 @@ sub run {
                                 /x) {
                                 $date = DateTime->new(
                                     (map { $_ => $+{$_} } qw(year month day hour minute second)),
-                                    time_zone   => 'floating',
+                                    time_zone   => 'local',
                                 );
                             } else {
                                 $self->log('error','Could not parse date format %s',$exif->GetValue('DateTimeOriginal'));
@@ -286,7 +287,6 @@ sub run {
                                     $changed_exif = 1;
                                 }
                             }
-                            $changed_exif = 1;
                             if ($changed_exif) {
                                 if ($self->backup) {
                                     my $backup_path = Path::Class::File->new($image_path->dir,'_'.$image_path->basename);
