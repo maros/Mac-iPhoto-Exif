@@ -63,6 +63,16 @@ ACCESSORS
 
     Default: false
 
+METHODS
+  parse_album
+    Return the iPhoto album as a XML::LibXml::Doc object
+
+  run
+    Run the iPhoto to Exif conversion
+
+  log
+    Log message
+
 DISCLAIMER
     This module has been extensively tested on my machine (OSX 10.6.6,
     iPhoto 9.1.1) and deemed to work correctly. However I do not guarantee

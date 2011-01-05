@@ -73,6 +73,20 @@ Backup changed filed
 
 Default: false
 
+# METHODS
+
+## parse_album
+
+Return the iPhoto album as a XML::LibXml::Doc object
+
+## run
+
+Run the iPhoto to Exif conversion
+
+## log
+
+Log message
+
 # DISCLAIMER
 
 This module has been extensively tested on my machine (OSX 10.6.6,

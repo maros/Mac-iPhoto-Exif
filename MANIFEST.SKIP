@@ -44,4 +44,5 @@
 #   Mac OSX SMB mount metadata files
 \B\._
 
+t/original/
 Mac-iPhoto-Exif-\d\.\d+\.tar\.gz
