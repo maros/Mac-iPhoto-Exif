@@ -23,6 +23,8 @@ requires        'File::Copy'                => '0';
 requires        'DateTime'                  => '0';
 requires        'Image::ExifTool'           => '0';
 requires        'Image::ExifTool::Location' => '0';
+requires        'Unicode::Normalize'        => '0';
+requires        'Encode'                    => '0';
 
 build_requires  'Test::Most'                => 0;
 build_requires  'Test::NoWarnings'          => 0;
