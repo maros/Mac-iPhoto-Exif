@@ -22,17 +22,19 @@ our $DATE_SEPARATOR = '[.:\/]';
 our $TIMERINTERVAL_EPOCH = 978307200; # Epoch of TimeInterval zero point: 2001.01.01
 our $IPHOTO_ALBUM = $ENV{HOME}.'/Pictures/iPhoto Library/AlbumData.xml';
 
-subtype 'Path::Class::Dirs' 
+subtype 'Mac::iPhoto::Exif::Type::Dirs' 
     => as 'ArrayRef[Path::Class::Dir]';
 
-subtype 'Path::Class::File'
+subtype 'Mac::iPhoto::Exif::Type::File'
     => as 'Path::Class::File';
 
-coerce 'Path::Class::File'
+coerce 'Mac::iPhoto::Exif::Type::File'
     => from 'Str'
-    => via { Path::Class::File->new($_) };
+    => via { Path::Class::File->new($_) }
+    => from 'ArrayRef[Str]'
+    => via { Path::Class::Dir->new($_->[0]) };
 
-coerce 'Path::Class::Dirs'
+coerce 'Mac::iPhoto::Exif::Type::Dirs'
     => from 'Str'
     => via { [ Path::Class::Dir->new($_) ] }
     => from 'ArrayRef[Str]'
@@ -40,7 +42,7 @@ coerce 'Path::Class::Dirs'
 
 has 'directory'  => (
     is                  => 'ro',
-    isa                 => 'Path::Class::Dirs',
+    isa                 => 'Mac::iPhoto::Exif::Type::Dirs',
     coerce              => 1,
     predicate           => 'has_directory',
     documentation       => "Limit operation to given directories [Multiple; Default: All]",
@@ -48,7 +50,7 @@ has 'directory'  => (
 
 has 'exclude'  => (
     is                  => 'ro',
-    isa                 => 'Path::Class::Dirs',
+    isa                 => 'Mac::iPhoto::Exif::Type::Dirs',
     coerce              => 1,
     predicate           => 'has_exclude',
     documentation       => "Exclude given directories  [Multiple; Default: None]",
@@ -56,9 +58,9 @@ has 'exclude'  => (
 
 has 'iphoto_album'  => (
     is                  => 'ro',
-    isa                 => 'Path::Class::File',
+    isa                 => 'Mac::iPhoto::Exif::Type::File',
     coerce              => 1,
-    default             => $IPHOTO_ALBUM,
+    #default             => $IPHOTO_ALBUM,
     documentation       => "Path to iPhoto library [Default: $IPHOTO_ALBUM]",
 );
 

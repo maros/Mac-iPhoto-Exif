@@ -6,17 +6,12 @@ use 5.010;
 use utf8;
 
 use Moose;
-extends qw(Mac::iPhoto::Exif);
 with qw(MooseX::Getopt);
+extends qw(Mac::iPhoto::Exif);
 
 use Moose::Util::TypeConstraints;
 use Term::ANSIColor;
 use Scalar::Util qw(weaken);
-
-MooseX::Getopt::OptionTypeMap->add_option_type_to_map( 
-    'Path::Class::Dirs'             => '=s@',
-    'Path::Class::File'             => '=s',
-);
 
 has 'force' => (
     is                  => 'ro',
@@ -31,6 +26,14 @@ has 'loglevel' => (
     default             => 'info',
     documentation       => 'Log level [Values: '.join(',',@Mac::iPhoto::Exif::LEVELS).'; Default: info]',
 );
+
+MooseX::Getopt::OptionTypeMap->add_option_type_to_map( 
+    'Mac::iPhoto::Exif::Type::File'             => '=s',
+);
+MooseX::Getopt::OptionTypeMap->add_option_type_to_map( 
+    'Mac::iPhoto::Exif::Type::Dirs'             => '=s@',
+);
+
 
 after 'log' => sub {
     my ($self,$loglevel,$message,@params) = @_;
