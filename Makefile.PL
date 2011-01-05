@@ -17,7 +17,6 @@ requires        'version'                   => 0;
 requires        'Moose'                     => '0.94';
 requires        'MooseX::Getopt'            => '0';
 requires        'Scalar::Util'              => '0';
-requires        'MooseX::Types::Path::Class'=> '0.';
 requires        'XML::LibXML'               => '0';
 requires        'Term::ANSIColor'           => '0';
 requires        'File::Copy'                => '0';
