@@ -79,6 +79,7 @@ has 'backup'  => (
 sub log {
     my ($self,$loglevel,$format,@params) = @_;
     # DO not log anything
+    return;
 }
 
 sub parse_album {
@@ -171,7 +172,7 @@ sub run {
                             my $faces = $image->{Faces};
                             
                             $self->log('info','Processing %s',$image_path->stringify);
-                            my $exif = new Image::ExifTool(
+                            my $exif = Image::ExifTool->new(
                                 Charset => 'UTF8',
                                 #DateFormat=>undef
                             );
@@ -311,6 +312,8 @@ sub run {
             }
         }
     }
+    
+    return 1;
 }
 
 sub _plist_node_to_hash {
@@ -350,6 +353,8 @@ sub _plist_node_to_value {
             return _plist_node_to_hash($node);
         }
     }
+    
+    return;
 }
 
 sub _plist_node_to_array {
@@ -449,6 +454,20 @@ Default: true
 Backup changed filed
 
 Default: false
+
+=head1 METHODS
+
+=head2 parse_album
+
+Return the iPhoto album as a XML::LibXml::Doc object
+
+=head2 run
+
+Run the iPhoto to Exif conversion
+
+=head2 log
+
+Log message
 
 =head1 DISCLAIMER
 
