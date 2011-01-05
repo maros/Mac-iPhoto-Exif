@@ -9,9 +9,11 @@ use Moose;
 
 use Moose::Util::TypeConstraints;
 use Path::Class;
+use Encode;
 use XML::LibXML;
 use File::Copy;
 use DateTime;
+use Unicode::Normalize;
 
 use Image::ExifTool;
 use Image::ExifTool::Location;
@@ -179,6 +181,7 @@ sub run {
                                 Charset => 'UTF8',
                                 #DateFormat=>undef
                             );
+                            $exif->Options(Charset => 'UTF8');
                             #$exif->Options(DateFormat => undef);
                             
                             $exif->ExtractInfo($image_path->stringify);
@@ -218,21 +221,31 @@ sub run {
                             if (defined $faces && scalar @{$faces}) {
                                 my $persons_changed = 0;
                                 my @persons_list = $exif->GetValue('PersonInImage');
+                                my @persons_list_final;
                                 
+                                foreach my $person (@persons_list) {
+                                    Encode::_utf8_on($person);
+                                    if ($person ~~ \@persons_list_final) {
+                                        $persons_changed = 1;
+                                    } else {
+                                        push(@persons_list_final,$person)
+                                    }
+                                }
                                 foreach my $face (@$faces) {
                                     my $person = $persons->{$face->{'face key'}};
                                     next
                                         unless defined $person;
                                     next
-                                        if $person ~~ \@persons_list;
+                                        if $person ~~ \@persons_list_final;
                                     $self->log('debug','- Add person %s',$person);
-                                    push(@persons_list,$person);
+                                    push(@persons_list_final,$person);
                                     $persons_changed = 1;
                                 }
+                                
                                 if ($persons_changed
-                                    && scalar @persons_list) {
+                                    && scalar @persons_list_final) {
                                     $changed_exif = 1;
-                                    $exif->SetNewValue('PersonInImage',[ sort @persons_list ]);
+                                    $exif->SetNewValue('PersonInImage',[ sort @persons_list_final ]);
                                 }
                             } 
                             
@@ -241,6 +254,7 @@ sub run {
                                 my $keywords_changed = 0;
                                 my @keywords_list = $exif->GetValue('Keywords');
                                 foreach my $keyword (keys %keywords) {
+                                    Encode::_utf8_on($keyword);
                                     next
                                         if $keyword ~~ \@keywords_list;
                                     $self->log('debug','- Add keyword %s',$keyword);
@@ -256,6 +270,7 @@ sub run {
                             # User comments
                             if ($comment) {
                                 my $old_comment = $exif->GetValue('UserComment');
+                                Encode::_utf8_on($old_comment);
                                 if (! defined $old_comment 
                                     || $old_comment ne $comment) {
                                     $self->log('debug','- Set user comment');
@@ -318,6 +333,18 @@ sub run {
     return 1;
 }
 
+
+
+sub _fix_string {
+    my ($string) = @_;
+    
+    if ($string =~ /[[:alpha:]]/) {
+        $string = NFC($string);
+        $string =~ s/\p{NonspacingMark}//g;
+    }
+    return $string;
+}
+
 sub _plist_node_to_hash {
     my ($node) = @_;
     
@@ -343,7 +370,7 @@ sub _plist_node_to_value {
     my ($node) = @_;
     given ($node->nodeName) {
         when ('string') {
-            return $node->textContent;
+            return _fix_string($node->textContent);
         }
         when ([qw(real integer)]) {
             return $node->textContent + 0;
