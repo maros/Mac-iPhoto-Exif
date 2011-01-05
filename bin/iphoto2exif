@@ -42,6 +42,12 @@ Backup changed filed
 
 Default: false
 
+=head2 force
+
+Force action
+
+Default: false
+
 =head2 help, usage, ?
 
 Show help
