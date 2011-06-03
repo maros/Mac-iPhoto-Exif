@@ -54,12 +54,17 @@ ACCESSORS
     Default: info
 
   changetime
-    Change file time according to exif timestamps
+    Change file create time according to exif timestamps
 
     Default: true
 
   backup
-    Backup changed filed
+    Backup changed files
+
+    Default: false
+
+  dryrun
+    Do not alter files, just log actions
 
     Default: false
 

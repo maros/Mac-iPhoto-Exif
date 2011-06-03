@@ -531,13 +531,19 @@ Default: info
 
 =head2 changetime
 
-Change file time according to exif timestamps
+Change file create time according to exif timestamps
 
 Default: true
 
 =head2 backup
 
-Backup changed filed
+Backup changed files
+
+Default: false
+
+=head2 dryrun
+
+Do not alter files, just log actions 
 
 Default: false
 

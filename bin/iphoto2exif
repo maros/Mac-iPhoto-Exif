@@ -32,7 +32,7 @@ Be more/less verbose. Accepted loglevels are : debug, info, warn and error
 
 =head2 changetime
 
-Change file time according to exif timestamps
+Change file create time according to exif timestamps
 
 Default: true
 
@@ -44,7 +44,13 @@ Default: false
 
 =head2 force
 
-Force action
+Force update without backup 
+
+Default: false
+
+=head2 dryrun
+
+Do not alter files, just log actions 
 
 Default: false
 
