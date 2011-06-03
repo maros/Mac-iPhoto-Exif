@@ -10,7 +10,7 @@ all_from        $from;
 readme_from     $from;
 readme_markdown_from $from;
 
-perl_version    '5.008';
+perl_version    '5.010';
 
 # Specific dependencies
 requires        'version'                   => 0;
