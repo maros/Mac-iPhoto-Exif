@@ -42,6 +42,13 @@ coerce 'Mac::iPhoto::Exif::Type::Dirs'
     => from 'ArrayRef[Str]'
     => via { [ map { Path::Class::Dir->new($_) } @$_ ] };
 
+has 'dryrun' => (
+    is                  => 'ro',
+    isa                 => 'Bool',
+    default             => 0,
+    documentation       => 'Dry-run [Default: false]',
+);
+
 has 'directory'  => (
     is                  => 'ro',
     isa                 => 'Mac::iPhoto::Exif::Type::Dirs',
@@ -78,6 +85,13 @@ has 'backup'  => (
     isa                 => 'Bool',
     documentation       => 'Backup files [Default: false]',
     default             => 0,
+);
+
+has 'merge'  => (
+    is                  => 'ro',
+    isa                 => 'Bool',
+    documentation       => 'Merge tags and faces [Default: true]',
+    default             => 1,
 );
 
 sub log {
@@ -132,6 +146,7 @@ sub run {
             when ('Master Image List') {
                 my $imagelist_node = $top_node->nextNonBlankSibling();
                 my $key;
+                IMAGE_NODES:
                 foreach my $image_node ($imagelist_node->childNodes) {
                     given ($image_node->nodeName) {
                         when ('key') {
@@ -142,6 +157,13 @@ sub run {
                             my $image = _plist_node_to_value($image_node);
                             
                             my $image_path = Path::Class::File->new($image->{OriginalPath} || $image->{ImagePath});
+                            
+                            # Check if original image file is present
+                            unless (-e $image_path->stringify) {
+                                $self->log('error','Could not find image at %s',$image_path->stringify);
+                                next IMAGE_NODES;
+                            }
+                            
                             my $image_directory = $image_path->dir;
                             
                             # Process directories
@@ -153,7 +175,7 @@ sub run {
                                         last;
                                     }
                                 }
-                                next
+                                next IMAGE_NODES
                                     unless $contains;
                             }
                             
@@ -166,7 +188,7 @@ sub run {
                                         last;
                                     }
                                 }
-                                next
+                                next IMAGE_NODES
                                     if $contains;
                             }
                             
@@ -191,7 +213,9 @@ sub run {
                             # Take crazy date form iphoto album?
                             #my $date = $image->{DateAsTimerInterval} + $TIMERINTERVAL_EPOCH;
                             
-                            if ($exif->GetValue('DateTimeOriginal') =~ m/^
+                            my $date_original = $exif->GetValue('DateTimeOriginal');
+                            if (defined $date_original
+                                && $date_original =~ m/^
                                 (?<year>(19|20)\d{2})
                                 $DATE_SEPARATOR
                                 (?<month>\d{1,2})
@@ -209,8 +233,8 @@ sub run {
                                     time_zone   => 'local',
                                 );
                             } else {
-                                $self->log('error','Could not parse date format %s',$exif->GetValue('DateTimeOriginal'));
-                                next;
+                                $self->log('error','Could not parse date format %s',$date_original // 'UNDEF');
+                                next IMAGE_NODES;
                             }
                             
                             my %keywords = map { $keywords->{$_} => 1 } @{$image->{Keywords}};
@@ -219,51 +243,67 @@ sub run {
                             
                             # Faces
                             if (defined $faces && scalar @{$faces}) {
-                                my $persons_changed = 0;
-                                my @persons_list = $exif->GetValue('PersonInImage');
+                                my @persons_list_original = $exif->GetValue('PersonInImage');
                                 my @persons_list_final;
                                 
-                                foreach my $person (@persons_list) {
-                                    Encode::_utf8_on($person);
-                                    if ($person ~~ \@persons_list_final) {
-                                        $persons_changed = 1;
-                                    } else {
-                                        push(@persons_list_final,$person)
+                                if ($self->merge) {
+                                    foreach my $person (@persons_list_original) {
+                                        # i probably should not do that, but Image::ExifTools seems to
+                                        # return utf8 encoded strings without the utf8 flag set
+                                        Encode::_utf8_on($person);
+                                        
+                                        unless ($person ~~ \@persons_list_final) {
+                                            push(@persons_list_final,$person)
+                                        }
                                     }
                                 }
+                                
+                                FACES:
                                 foreach my $face (@$faces) {
                                     my $person = $persons->{$face->{'face key'}};
-                                    next
+                                    next FACES
                                         unless defined $person;
-                                    next
+                                    next FACES
                                         if $person ~~ \@persons_list_final;
                                     $self->log('debug','- Add person %s',$person);
                                     push(@persons_list_final,$person);
-                                    $persons_changed = 1;
                                 }
                                 
-                                if ($persons_changed
-                                    && scalar @persons_list_final) {
+                                if (_list_is_changed(\@persons_list_final,\@persons_list_original)) {
                                     $changed_exif = 1;
-                                    $exif->SetNewValue('PersonInImage',[ sort @persons_list_final ]);
+                                    $exif->SetNewValue('PersonInImage',[ @persons_list_final ]);
                                 }
                             } 
                             
                             # Keywords
                             if (scalar keys %keywords) {
-                                my $keywords_changed = 0;
-                                my @keywords_list = $exif->GetValue('Keywords');
-                                foreach my $keyword (keys %keywords) {
-                                    Encode::_utf8_on($keyword);
-                                    next
-                                        if $keyword ~~ \@keywords_list;
-                                    $self->log('debug','- Add keyword %s',$keyword);
-                                    push(@keywords_list,$keyword);
-                                    $keywords_changed = 1;
+                                my @keywords_list_original = $exif->GetValue('Keywords');
+                                my @keywords_list_final;
+                                
+                                if ($self->merge) {
+                                    foreach my $keyword (@keywords_list_original) {
+                                        # i probably should not do that, but Image::ExifTools seems to
+                                        # return utf8 encoded strings without the utf8 flag set
+                                        Encode::_utf8_on($keyword);
+                                        
+                                        unless ($keyword ~~ \@keywords_list_final) {
+                                            push(@keywords_list_final,$keyword)
+                                        }
+                                    }
                                 }
-                                if ($keywords_changed) {
+                                
+                                KEYWORDS:
+                                foreach my $keyword (keys %keywords) {
+                                    next KEYWORDS
+                                        if $keyword ~~ \@keywords_list_final;
+                                    
+                                    $self->log('debug','- Add keyword %s',$keyword);
+                                    push(@keywords_list_final,$keyword);
+                                }
+                                
+                               if (_list_is_changed(\@keywords_list_final,\@keywords_list_original)) {
                                     $changed_exif = 1;
-                                    $exif->SetNewValue('Keywords',[ sort @keywords_list ]);
+                                    $exif->SetNewValue('Keywords',[ @keywords_list_final ]);
                                 }
                             }
                             
@@ -302,24 +342,28 @@ sub run {
                                     $changed_exif = 1;
                                 }
                             }
-                            if ($changed_exif) {
-                                if ($self->backup) {
-                                    my $backup_path = Path::Class::File->new($image_path->dir,'_'.$image_path->basename);
-                                    $self->log('debug','- Writing backup file to %s',$backup_path->stringify);
-                                    File::Copy::syscopy($image_path->stringify,$backup_path->stringify)
-                                        or $self->log('error','Could not copy %s to %s: %s',$image_path->stringify,$backup_path->stringify,$!);
+                            
+                            unless ($self->dryrun) {
+                                if ($changed_exif) {
+                                    if ($self->backup) {
+                                        my $backup_path = Path::Class::File->new($image_path->dir,'_'.$image_path->basename);
+                                        $self->log('debug','- Writing backup file to %s',$backup_path->stringify);
+                                        File::Copy::syscopy($image_path->stringify,$backup_path->stringify)
+                                            or $self->log('error','Could not copy %s to %s: %s',$image_path->stringify,$backup_path->stringify,$!);
+                                    }
+                                    my $success = $exif->WriteInfo($image_path->stringify);
+                                    if ($success) {
+                                        $self->log('debug','- Exif data has been written to %s',$image_path->stringify);
+                                    } else {
+                                        $self->log('error','Could not write to %s: %s',$image_path->stringify,$exif->GetValue('Error'));
+                                    }
                                 }
-                                my $success = $exif->WriteInfo($image_path->stringify);
-                                if ($success) {
-                                    $self->log('debug','- Exif data has been written to %s',$image_path->stringify);
-                                } else {
-                                    $self->log('error','Could not write to %s: %s',$image_path->stringify,$exif->GetValue('Error'));
+                                
+                                if ($self->changetime) {
+                                    $self->log('debug','- Change file time to %s',$date->datetime);
+                                    utime($date->epoch, $date->epoch, $image_path->stringify)
+                                        or $self->log('error','Could not utime %s: %s',$image_path->stringify,$!);
                                 }
-                            }
-                            if ($self->changetime) {
-                                $self->log('debug','- Change file time to %s',$date->datetime);
-                                utime($date->epoch, $date->epoch, $image_path->stringify)
-                                    or $self->log('error','Could not utime %s: %s',$image_path->stringify,$!);
                             }
                             
                             $count ++;
@@ -397,6 +441,19 @@ sub _plist_node_to_array {
     }
     
     return $return;
+}
+
+sub _list_is_changed {
+    my ($list_final,$list_original) = @_;
+    
+    return 1
+        if scalar @$list_final != scalar @$list_original;
+    
+    for (my $index = 0; $index <= scalar @$list_final; $index ++) {
+        return 1
+            unless $list_final->[$index] ~~ $list_original->[$index];
+    }
+    return 0;
 }
 
 __PACKAGE__->meta->make_immutable;

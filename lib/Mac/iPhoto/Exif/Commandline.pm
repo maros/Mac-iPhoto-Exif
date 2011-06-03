@@ -78,7 +78,7 @@ around 'run' => sub {
     
     binmode STDOUT, ":utf8";
     
-    unless ($self->backup || $self->force) {
+    unless ($self->backup || $self->force || $self->dryrun) {
         $self->log('warn','Your pictures will be altered without backup. Type "yes" if you want to continue!');
         my $confirm = <STDIN>;
         chomp($confirm);
