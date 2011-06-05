@@ -87,11 +87,11 @@ has 'backup'  => (
     default             => 0,
 );
 
-has 'merge'  => (
+has 'nomerge'  => (
     is                  => 'ro',
     isa                 => 'Bool',
-    documentation       => 'Merge tags and faces [Default: true]',
-    default             => 1,
+    documentation       => 'Do not merge existing exif tags and faces but overwrite [Default: true]',
+    default             => 0,
 );
 
 sub log {
@@ -243,10 +243,10 @@ sub run {
                             
                             # Faces
                             if (defined $faces && scalar @{$faces}) {
-                                my @persons_list_original = $exif->GetValue('PersonInImage');
+                                my @persons_list_original = grep { Encode::_utf8_on($_); 1; } $exif->GetValue('PersonInImage'); 
                                 my @persons_list_final;
                                 
-                                if ($self->merge) {
+                                unless ($self->nomerge) {
                                     foreach my $person (@persons_list_original) {
                                         # i probably should not do that, but Image::ExifTools seems to
                                         # return utf8 encoded strings without the utf8 flag set
@@ -265,22 +265,28 @@ sub run {
                                         unless defined $person;
                                     next FACES
                                         if $person ~~ \@persons_list_final;
-                                    $self->log('debug','- Add person %s',$person);
+                                    $self->log('debug','- Add person %s',$person)
+                                        unless $self->nomerge;
                                     push(@persons_list_final,$person);
                                 }
                                 
+                                @persons_list_original = sort @persons_list_original;
+                                @persons_list_final = sort @persons_list_final;
+                                
                                 if (_list_is_changed(\@persons_list_final,\@persons_list_original)) {
                                     $changed_exif = 1;
+                                    $self->log('debug','- Set persons %s',join(',',@persons_list_final))
+                                        if $self->nomerge;
                                     $exif->SetNewValue('PersonInImage',[ @persons_list_final ]);
                                 }
                             } 
                             
                             # Keywords
                             if (scalar keys %keywords) {
-                                my @keywords_list_original = $exif->GetValue('Keywords');
+                                my @keywords_list_original = grep { Encode::_utf8_on($_); 1; } $exif->GetValue('Keywords');
                                 my @keywords_list_final;
                                 
-                                if ($self->merge) {
+                                unless ($self->nomerge) {
                                     foreach my $keyword (@keywords_list_original) {
                                         # i probably should not do that, but Image::ExifTools seems to
                                         # return utf8 encoded strings without the utf8 flag set
@@ -296,13 +302,18 @@ sub run {
                                 foreach my $keyword (keys %keywords) {
                                     next KEYWORDS
                                         if $keyword ~~ \@keywords_list_final;
-                                    
-                                    $self->log('debug','- Add keyword %s',$keyword);
+                                    $self->log('debug','- Add keyword %s',$keyword)
+                                        unless $self->nomerge;
                                     push(@keywords_list_final,$keyword);
                                 }
                                 
+                                @keywords_list_original = sort @keywords_list_original;
+                                @keywords_list_final = sort @keywords_list_final;
+                                
                                if (_list_is_changed(\@keywords_list_final,\@keywords_list_original)) {
                                     $changed_exif = 1;
+                                    $self->log('debug','- Set keywords %s',join(',',@keywords_list_final))
+                                        if $self->nomerge;
                                     $exif->SetNewValue('Keywords',[ @keywords_list_final ]);
                                 }
                             }
