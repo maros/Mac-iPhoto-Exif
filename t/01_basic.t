@@ -17,7 +17,7 @@ $iphoto_exif->run;
 
 ok(-e 't/_IMG_01.JPG','Backup has been created');
 
-my $exif = new Image::ExifTool(
+my $exif = Image::ExifTool->new(
     Charset => 'UTF8',
 );
 
