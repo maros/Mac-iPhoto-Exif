@@ -4,6 +4,7 @@ package Mac::iPhoto::Exif::Commandline;
 
 use 5.010;
 use utf8;
+no if $] >= 5.017004, warnings => qw(experimental::smartmatch);
 
 use Moose;
 with qw(MooseX::Getopt);
