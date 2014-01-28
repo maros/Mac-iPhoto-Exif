@@ -19,7 +19,9 @@ use Unicode::Normalize;
 use Image::ExifTool;
 use Image::ExifTool::Location;
 
-our $VERSION = version->new("1.00");
+our $VERSION = "1.01";
+our $AUTHORITY = 'cpan:MAROS';
+
 our @LEVELS = qw(debug info warn error);
 our $DATE_SEPARATOR = '[.:\/]';
 our $TIMERINTERVAL_EPOCH = 978307200; # Epoch of TimeInterval zero point: 2001.01.01
