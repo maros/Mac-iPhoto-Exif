@@ -46,3 +46,5 @@
 
 t/original/
 Mac-iPhoto-Exif-\d\.\d+\.tar\.gz
+
+MYMETA.*
