@@ -4,8 +4,6 @@ package Mac::iPhoto::Exif;
 
 use 5.010;
 use utf8;
-no if $] >= 5.017004, warnings => qw(experimental::smartmatch);
-
 use Moose;
 
 use Moose::Util::TypeConstraints;
@@ -18,6 +16,8 @@ use Unicode::Normalize;
 
 use Image::ExifTool;
 use Image::ExifTool::Location;
+
+no if $] >= 5.017004, warnings => qw(experimental::smartmatch);
 
 our $VERSION = "1.01";
 our $AUTHORITY = 'cpan:MAROS';

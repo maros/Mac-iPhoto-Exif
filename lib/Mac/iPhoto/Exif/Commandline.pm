@@ -4,7 +4,6 @@ package Mac::iPhoto::Exif::Commandline;
 
 use 5.010;
 use utf8;
-no if $] >= 5.017004, warnings => qw(experimental::smartmatch);
 
 use Moose;
 with qw(MooseX::Getopt);
@@ -13,6 +12,8 @@ extends qw(Mac::iPhoto::Exif);
 use Moose::Util::TypeConstraints;
 use Term::ANSIColor;
 use Scalar::Util qw(weaken);
+
+no if $] >= 5.017004, warnings => qw(experimental::smartmatch);
 
 has 'force' => (
     is                  => 'ro',
